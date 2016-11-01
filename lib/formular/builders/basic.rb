@@ -54,7 +54,7 @@ module Formular
 
       # these can be called from an element
       def path(appendix = nil)
-        appendix ? Path[*@path_prefix, appendix] : Path[@path_prefix]
+        appendix ? Path[*@path_prefix, *appendix] : Path[@path_prefix]
       end
 
       def reader_value(name)
