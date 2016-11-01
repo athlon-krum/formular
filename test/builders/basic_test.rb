@@ -38,19 +38,19 @@ describe Formular::Builders::Basic do
     it 'infer collection from name' do
       builder.collection(:replies) do |o|
         o.input :id
-      end.to_s.must_equal %(<input name="replies[][id]" id="replies_0_id" type="text"/>)
+      end.to_s.must_equal %(<input name=\"replies[0][id]\" id=\"replies_0_id\" type=\"text\"/>)
     end
 
     it 'provide collection' do
       builder.collection(:replies, models: [Reply.new, Reply.new]) do |o|
         o.input :id
-      end.to_s.must_equal %(<input name="replies[][id]" id="replies_0_id" type="text"/><input name=\"replies[][id]\" id=\"replies_1_id\" type=\"text\"/>)
+      end.to_s.must_equal %(<input name=\"replies[0][id]\" id=\"replies_0_id\" type=\"text\"/><input name=\"replies[1][id]\" id=\"replies_1_id\" type=\"text\"/>)
     end
 
     it 'custom builder' do
       builder.collection(:replies, builder: Formular::Builders::Bootstrap3) do |o|
         o.input :id
-      end.to_s.must_equal %(<div class="form-group"><input name="replies[][id]" id="replies_0_id" type="text" class="form-control"/></div>)
+      end.to_s.must_equal %(<div class="form-group"><input name=\"replies[0][id]\" id=\"replies_0_id\" type=\"text\" class="form-control"/></div>)
     end
   end
 end
