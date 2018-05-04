@@ -16,7 +16,6 @@ module Formular
     Wrapped = Class.new(Formular::Element) { include Formular::Element::Modules::Wrapped }
 
     # define some base classes to build from or easily use elsewhere
-    OptGroup = Class.new(Container) { tag :optgroup }
     Fieldset = Class.new(Container) { tag :fieldset }
     Legend = Class.new(Container) { tag :legend }
     Div = Class.new(Container) { tag :div }
@@ -24,23 +23,23 @@ module Formular
     Span = Class.new(Container) { tag :span }
     Small = Class.new(Container) { tag :small }
 
-    class Option < Container
-      tag :option
-      include Formular::Element::Modules::EscapeValue
+    class OptGroup < Container
+      include HtmlEscape
+      tag :optgroup
+      add_attribute_keys :disabled, :label
+      process_option :label, :html_escape
     end
 
-
-    class Hidden < Control
-      tag :input
-      set_default :type, 'hidden'
-
-      html { closed_start_tag }
+    class Option < Container
+      tag :option
+      add_attribute_keys :disabled, :value, :selected
+      include Formular::Element::Modules::EscapeValue
     end
 
     class Form < Container
       tag :form
-
-      add_option_keys :enforce_utf8, :csrf_token, :csrf_token_name
+      add_attribute_keys :enctype, :method, :name, :novalidate, :target,
+                         :accept, :action, :accept_charset, :autocomplete
 
       set_default :method, 'post'
       set_default :accept_charset, 'utf-8'
@@ -101,7 +100,6 @@ module Formular
 
     class ErrorNotification < Formular::Element
       tag :div
-      add_option_keys :message
 
       html do |element|
         if element.builder_errors?
@@ -125,15 +123,13 @@ module Formular
 
     class Error < P
       include Formular::Element::Modules::Error
-      add_option_keys :attribute_name
       set_default :content, :error_text
     end # class Error
 
     class Textarea < Control
       include Formular::Element::Modules::Container
       tag :textarea
-      add_option_keys :value
-      add_option_keys
+      add_attribute_keys :cols, :rows, :max_length, :min_length, :placeholder, :readonly, :wrap
 
       def content
         options[:value] || super
@@ -142,7 +138,7 @@ module Formular
 
     class Label < Container
       tag :label
-      add_option_keys :labeled_control, :attribute_name
+      add_attribute_keys :for
       set_default :for, :labeled_control_id
 
       # as per MDN A label element can have both a 'for' attribute and a contained control element,
@@ -155,6 +151,7 @@ module Formular
 
     class Submit < Formular::Element
       include Formular::Element::Modules::EscapeValue
+      add_attribute_keys :type, :value
       tag :input
 
       set_default :type, 'submit'
@@ -163,29 +160,37 @@ module Formular
     end # class Submit
 
     class Button < Container
-      include Formular::Element::Modules::Control
-
+      include Formular::Element::Modules::EscapeValue
+      add_attribute_keys :type, :autofocus, :disabled, :form, :name, :value
       tag :button
+      set_default :type, 'button'
     end # class Button
 
     class Input < Control
-      include HtmlEscape
+      include Formular::Element::Modules::EscapeValue
+      add_attribute_keys :type, :value, :placeholder, :readonly, :accept, :autocomplete,
+                         :max, :min, :maxlength, :minlength, :mulitple
 
       tag :input
       set_default :type, 'text'
-      process_option :value, :html_escape
 
       html { closed_start_tag }
     end # class Input
+
+    class Hidden < Input
+      set_default :type, 'hidden'
+    end
 
     class Select < Control
       include Formular::Element::Modules::Collection
       include HtmlEscape
 
+      add_attribute_keys :multiple
+
       tag :select
 
-      add_option_keys :value, :prompt, :include_blank
       process_option :collection, :inject_placeholder
+      process_option :name, :name_array_if_multiple
 
       html do |input|
         concat start_tag
@@ -216,6 +221,13 @@ module Formular
       end
 
       private
+      # only append the [] to name if the multiple option is set
+      def name_array_if_multiple(name)
+        return unless name
+
+        options[:multiple] ? "#{name}[]" : name
+      end
+
       # same handling as simple form
       # prompt: a nil value option appears if we have no selected option
       # include blank: includes our nil value option regardless (useful for optional fields)
@@ -255,22 +267,27 @@ module Formular
                  {}
                end
 
-        opts[:value] = item.send(options[:value_method])
+        opts[:value] = html_escape(item.send(options[:value_method]))
         opts[:content] = item.send(options[:label_method])
-        opts[:selected] = 'selected' if opts[:value].to_s == options[:value].to_s
+
+        opts[:selected] = 'selected' if item_is_selected(opts[:value], options[:value], options[:multiple])
 
         Formular::Element::Option.new(opts).to_s
+      end
+
+      def item_is_selected(option_val, current_val, multiple)
+        return option_val == current_val.to_s unless multiple && current_val.is_a?(Array)
+
+        current_val.map(&:to_s).include?(option_val) # TODO Perf improvement here - do we need the map?
       end
     end # class Select
 
     class Checkbox < Control
       tag :input
 
-      add_option_keys :unchecked_value, :include_hidden, :multiple
-
       set_default :type, 'checkbox'
       set_default :unchecked_value, :default_unchecked_value
-      set_default :value, '1' # instead of reader value
+      set_default :value, :default_checked_value # instead of reader value
       set_default :include_hidden, true
 
       include Formular::Element::Modules::Checkable
@@ -296,6 +313,10 @@ module Formular
       end
 
       private
+
+      def default_checked_value
+        options[:checked_value] || '1'
+      end
 
       def default_unchecked_value
         collection? ? '' : '0'

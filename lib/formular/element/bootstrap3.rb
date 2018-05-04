@@ -14,7 +14,6 @@ module Formular
       Row = Class.new(Formular::Element::Div) { set_default :class, ['row'] }
 
       class Icon < Formular::Element::Span
-        add_option_keys :name
         set_default :class, :icon_class
 
         #returns the class of the bootstrap Glyphicons
@@ -45,9 +44,23 @@ module Formular
           %(glyphicon glyphicon-#{icon_name})
         end
       end
+      class Button < Formular::Element::Button
+        set_default :class, ['btn']
+        set_default :type, 'button'
+        set_default :color, 'default'
+        set_default :block, false
 
-      class Submit < Formular::Element::Button
-        set_default :class, ['btn', 'btn-default']
+        process_option :class, :set_classes!
+
+        def set_classes!(klasses)
+          options[:class] = klasses.dup
+          options[:class] << "btn-#{options[:size]}" if options[:size]
+          options[:class] << "btn-block" if options[:block]
+          options[:class] << "btn-#{options[:color]}"
+        end
+      end # class Button
+
+      class Submit < Formular::Element::Bootstrap3::Button
         set_default :type, 'submit'
       end # class Submit
 

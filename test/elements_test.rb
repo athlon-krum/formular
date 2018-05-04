@@ -27,12 +27,12 @@ describe 'core elements' do
   describe Formular::Element::Button do
     it '#to_s' do
       element = Formular::Element::Button.(name: 'my-name', value: 1, content: 'Jimmy')
-      element.to_s.must_equal %(<button name="my-name" value="1">Jimmy</button>)
+      element.to_s.must_equal %(<button name="my-name" value="1" type="button">Jimmy</button>)
     end
 
     it 'escapes value attribute' do
       element = Formular::Element::Button.(value: "I'm a little teapot whose spout is > 10cm")
-      element.to_s.must_equal %(<button value="I&#39;m a little teapot whose spout is &gt; 10cm"></button>)
+      element.to_s.must_equal %(<button value="I&#39;m a little teapot whose spout is &gt; 10cm" type="button"></button>)
     end
   end # Formular::Element::Button
 
@@ -263,14 +263,29 @@ describe 'core elements' do
   end # Formular::Element::Label
 
   describe Formular::Element::Checkbox do
-    it '#to_s unchecked' do
-      element = Formular::Element::Checkbox.(name: 'public', value: 1)
-      element.to_s.must_equal %(<input value="0" name="public" type="hidden"/><input name="public" value="1" type="checkbox"/>)
+    it '#to_s unchecked with default value' do
+      element = Formular::Element::Checkbox.(name: 'public')
+      element.to_s.must_equal %(<input value="0" name="public" type="hidden"/><input name="public" type="checkbox" value="1"/>)
+    end
+
+    it '#to_s unchecked with custom value' do
+      element = Formular::Element::Checkbox.(name: 'public', value: 2)
+      element.to_s.must_equal %(<input value="0" name="public" type="hidden"/><input name="public" value="2" type="checkbox"/>)
+    end
+
+    it '#to_s unchecked with custom checked_value' do
+      element = Formular::Element::Checkbox.(name: 'public', checked_value: 2)
+      element.to_s.must_equal %(<input value="0" name="public" type="hidden"/><input name="public" type="checkbox" value="2"/>)
+    end
+
+    it '#to_s unchecked with custom unchecked_value' do
+      element = Formular::Element::Checkbox.(name: 'public', unchecked_value: "")
+      element.to_s.must_equal %(<input value="" name="public" type="hidden"/><input name="public" type="checkbox" value="1"/>)
     end
 
     it '#to_s checked' do
-      element = Formular::Element::Checkbox.(name: 'public', value: 1, checked: 'checked')
-      element.to_s.must_equal %(<input value="0" name="public" type="hidden"/><input name="public" value="1" checked="checked" type="checkbox"/>)
+      element = Formular::Element::Checkbox.(name: 'public', checked: 'checked')
+      element.to_s.must_equal %(<input value="0" name="public" type="hidden"/><input name="public" checked="checked" type="checkbox" value="1"/>)
     end
 
     describe "with collection" do
@@ -316,16 +331,24 @@ describe 'core elements' do
         element.option_tags.must_equal %(<option value="0" selected="selected">False</option><option value="1">True</option>)
       end
 
+      it 'should html escape values' do
+        element = Formular::Element::Select.(
+          name: 'public',
+          collection: [['False', "0"], ['True', "g&t > wiskey&soda"]]
+        )
+        element.option_tags.must_equal %(<option value="0">False</option><option value="g&amp;amp;t &amp;gt; wiskey&amp;amp;soda">True</option>)
+      end
+
       it 'nested array' do
         element = Formular::Element::Select.(
           name: 'public',
           collection: [
             ['Genders', [%w(Male m), %w(Female f)]],
-            ['Booleans', [['True', 1], ['False', 0]]]
+            ["Bool's", [['True', 1], ['False', 0]]]
           ],
           value: 'm'
         )
-        element.option_tags.must_equal %(<optgroup label="Genders"><option value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option value="1">True</option><option value="0">False</option></optgroup>)
+        element.option_tags.must_equal %(<optgroup label="Genders"><option value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Bool&#39;s"><option value="1">True</option><option value="0">False</option></optgroup>)
       end
 
       it 'option tag attributes' do
@@ -333,11 +356,11 @@ describe 'core elements' do
           name: 'public',
           collection: [
             ['Genders', [['Male', 'm', { data: { some_attr: 'yes' } }], %w(Female f)]],
-            ['Booleans', [['True', 1, { required: 'true' }], ['False', 0]]]
+            ['Booleans', [['True', 1], ['False', 0]]]
           ],
           value: 'm'
         )
-        element.option_tags.must_equal %(<optgroup label="Genders"><option data-some-attr="yes" value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option required="true" value="1">True</option><option value="0">False</option></optgroup>)
+        element.option_tags.must_equal %(<optgroup label="Genders"><option data-some-attr="yes" value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option value="1">True</option><option value="0">False</option></optgroup>)
       end
     end
 
@@ -371,11 +394,11 @@ describe 'core elements' do
           name: 'public',
           collection: [
             ['Genders', [['Male', 'm', { data: { some_attr: 'yes' } }], %w(Female f)]],
-            ['Booleans', [['True', 1, { required: 'true' }], ['False', 0]]]
+            ['Booleans', [['True', 1], ['False', 0]]]
           ],
           prompt: 'Select an option'
         )
-        element.option_tags.must_equal %(<option value="" selected="selected">Select an option</option><optgroup label="Genders"><option data-some-attr="yes" value="m">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option required="true" value="1">True</option><option value="0">False</option></optgroup>)
+        element.option_tags.must_equal %(<option value="" selected="selected">Select an option</option><optgroup label="Genders"><option data-some-attr="yes" value="m">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option value="1">True</option><option value="0">False</option></optgroup>)
       end
 
 
@@ -384,12 +407,12 @@ describe 'core elements' do
           name: 'public',
           collection: [
             ['Genders', [['Male', 'm', { data: { some_attr: 'yes' } }], %w(Female f)]],
-            ['Booleans', [['True', 1, { required: 'true' }], ['False', 0]]]
+            ['Booleans', [['True', 1], ['False', 0]]]
           ],
           value: 'm',
           prompt: 'Select an option'
         )
-        element.option_tags.must_equal %(<optgroup label="Genders"><option data-some-attr="yes" value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option required="true" value="1">True</option><option value="0">False</option></optgroup>)
+        element.option_tags.must_equal %(<optgroup label="Genders"><option data-some-attr="yes" value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option value="1">True</option><option value="0">False</option></optgroup>)
       end
     end
 
@@ -425,12 +448,45 @@ describe 'core elements' do
           name: 'public',
           collection: [
             ['Genders', [['Male', 'm', { data: { some_attr: 'yes' } }], %w(Female f)]],
-            ['Booleans', [['True', 1, { required: 'true' }], ['False', 0]]]
+            ['Booleans', [['True', 1], ['False', 0]]]
           ],
           value: 'm',
           include_blank: true
         )
-        element.option_tags.must_equal %(<option value=""></option><optgroup label="Genders"><option data-some-attr="yes" value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option required="true" value="1">True</option><option value="0">False</option></optgroup>)
+        element.option_tags.must_equal %(<option value=""></option><optgroup label="Genders"><option data-some-attr="yes" value="m" selected="selected">Male</option><option value="f">Female</option></optgroup><optgroup label="Booleans"><option value="1">True</option><option value="0">False</option></optgroup>)
+      end
+    end
+    describe 'multiple' do
+      let(:element_opts) do
+        {
+          name: 'public',
+          multiple: true,
+          collection: [['False', 0], ['True', 1]]
+        }
+      end
+
+      it 'generates correct name' do
+        element = Formular::Element::Select.(element_opts)
+        element.to_s.must_equal %(<select name="public[]" multiple="true"><option value="0">False</option><option value="1">True</option></select>)
+      end
+
+      it 'has correct selecteds options' do
+        element_opts[:value] = [0,1]
+        element = Formular::Element::Select.(element_opts)
+        element.to_s.must_equal %(<select name="public[]" multiple="true"><option value="0" selected="selected">False</option><option value="1" selected="selected">True</option></select>)
+      end
+
+      it 'prompt if no value given' do
+        element_opts[:prompt] = 'Select an option'
+        element = Formular::Element::Select.(element_opts)
+        element.to_s.must_equal %(<select name="public[]" multiple="true"><option value="" selected="selected">Select an option</option><option value="0">False</option><option value="1">True</option></select>)
+      end
+
+      it 'no prompt if value given' do
+        element_opts[:value] = [0,1]
+        element_opts[:prompt] = 'Select an option'
+        element = Formular::Element::Select.(element_opts)
+        element.to_s.must_equal %(<select name="public[]" multiple="true"><option value="0" selected="selected">False</option><option value="1" selected="selected">True</option></select>)
       end
     end
   end # Formular::Element::Select
